@@ -19,9 +19,7 @@ function App() {
       const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
 
       if (!apiKey) {
-        throw new Error(
-          "API key missing. Please check your environment variables."
-        );
+        throw new Error("API key is missing. Check your environment variables.");
       }
 
       const response = await fetch(
@@ -33,17 +31,16 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Unable to fetch weather data.");
-      }
-
-      if (!data.weather?.[0] || !data.main) {
-        throw new Error("Weather data is unavailable for this city.");
+        throw new Error(
+          response.status === 404
+            ? "City not found. Please try another city."
+            : data.message || "Unable to fetch weather data."
+        );
       }
 
       setWeather(data);
     } catch (err) {
       setError(err.message || "Something went wrong.");
-      console.error("Weather API error:", err.message);
     } finally {
       setLoading(false);
     }
@@ -70,54 +67,85 @@ function App() {
       <Header />
 
       <main className="main-content">
-        <h1 className="app-title">Weather App</h1>
+        <section className="weather-container">
+          <h1 className="app-title">Weather App</h1>
+          <p className="app-subtitle">Weather at a glance.</p>
 
-        <p className="app-subtitle">
-          Check the weather of your city
-        </p>
-
-        <form className="search-box" onSubmit={handleSearch}>
-          <input
-            type="text"
-            placeholder="Enter city name"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-          />
-
-          <button type="submit" disabled={loading}>
-            {loading ? "Loading..." : "Search"}
-          </button>
-        </form>
-
-        {error && (
-          <p className="error-message" role="alert">
-            {error}
-          </p>
-        )}
-
-        {weather?.weather?.[0] && weather?.main && (
-          <div className="weather-card">
-            <h2 className="city-name">{weather.name}</h2>
-
-            <img
-              className="weather-icon"
-              src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
-              alt={weather.weather[0].description}
+          <form className="search-box" onSubmit={handleSearch}>
+            <input
+              type="text"
+              placeholder="Enter city name"
+              aria-label="Enter city name"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
             />
 
-            <h2 className="temperature">
-              {Math.round(weather.main.temp)}°C
-            </h2>
+            <button type="submit" disabled={loading}>
+              {loading ? "..." : "Search"}
+            </button>
+          </form>
 
-            <p className="weather-description">
-              {weather.weather[0].description}
+          {loading && (
+            <p className="status-message" role="status">
+              Loading weather...
             </p>
+          )}
 
-            <p>Feels like: {Math.round(weather.main.feels_like)}°C</p>
-            <p>Humidity: {weather.main.humidity}%</p>
-            <p>Wind speed: {weather.wind?.speed ?? "N/A"} m/s</p>
-          </div>
-        )}
+          {error && !loading && (
+            <p className="error-message" role="alert">
+              {error}
+            </p>
+          )}
+
+          {!loading && !error && weather?.weather?.[0] && weather?.main && (
+            <section className="weather-card">
+              <h2 className="city-name">
+                {weather.name}
+                {weather.sys?.country ? `, ${weather.sys.country}` : ""}
+              </h2>
+
+              <img
+                className="weather-icon"
+                src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@4x.png`}
+                alt={weather.weather[0].description}
+              />
+
+              <h2 className="temperature">
+                {Math.round(weather.main.temp)}°C
+              </h2>
+
+              <p className="weather-description">
+                {weather.weather[0].description}
+              </p>
+
+              <div className="weather-details">
+                <div className="detail-row">
+                  <span className="detail-icon" aria-hidden="true">🌡️</span>
+                  <span className="detail-label">Feels Like</span>
+                  <strong className="detail-value">
+                    {Math.round(weather.main.feels_like)}°C
+                  </strong>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-icon" aria-hidden="true">💧</span>
+                  <span className="detail-label">Humidity</span>
+                  <strong className="detail-value">
+                    {weather.main.humidity}%
+                  </strong>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-icon" aria-hidden="true">💨</span>
+                  <span className="detail-label">Wind Speed</span>
+                  <strong className="detail-value">
+                    {weather.wind?.speed ?? "N/A"} m/s
+                  </strong>
+                </div>
+              </div>
+            </section>
+          )}
+        </section>
       </main>
 
       <Footer />
